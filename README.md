@@ -29,17 +29,7 @@ Site: `(https://dnz7-net.github.io/bgp/)`
 12. BGP — aplicação por address-family
 13. RPKI / ROV (opcional)
 
-## Avisos
 
-- **Todos os valores são placeholders de documentação** (RFC 5398, 5737 e 3849). Eles colidem com os
-  próprios filtros de bogon do modelo. Substitua todos antes de aplicar.
-- **Nunca suba configuração real neste repositório.** Isso inclui IPs públicos de produção, hashes
-  `%^%#` (cipher reversível), shared-keys de RADIUS, communities SNMP, usuários e ACLs de gerência.
-  Um repositório público fica indexado e copiado por terceiros.
-- Itens marcados `VALIDAR` dependem de release: confirme com `?` no CLI ou na documentação Huawei.
-- Aplique em janela, com backup, um peer por vez e soft refresh (`refresh bgp ... import|export`).
-
-## Publicar o site (GitHub Pages)
 
 1. **Settings → Pages**
 2. **Source:** *Deploy from a branch*
