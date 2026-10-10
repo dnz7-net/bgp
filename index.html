@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Modelo de configuração BGP de borda para Huawei VRP8 com parâmetros editáveis.">
+<title>Modelo BGP de Borda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+html,body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+
+/* Layout: console de referencia. Rail de navegacao com as etapas de build a esquerda; coluna principal com parametros editaveis e blocos VRP indentados com highlight. */
+:root{
+  --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EAEFF3; --code-bg:#FBFCFD;
+  --line:#D8DFE5; --line-strong:#B6C2CC;
+  --fg:#15202A; --fg-2:#44515D; --fg-3:#6A7684;
+  --accent:#0A6C77; --accent-soft:#DDF0F1; --accent-fg:#FFFFFF;
+  --warn-bg:#FFF3D9; --warn-fg:#714400; --warn-line:#E6C274;
+  --danger-bg:#FCEBE9; --danger-fg:#9C1E13; --danger-line:#EEB1A9;
+  --ok-bg:#E1F3E8; --ok-fg:#145A31;
+  --syn-kw:#3647AE; --syn-opt:#6A4CA3; --syn-name:#0A6C77; --syn-num:#955400;
+  --syn-permit:#1B7739; --syn-deny:#B12216; --syn-str:#56662A; --syn-rx:#9A2C70; --syn-cmt:#778390;
+  --ph-bg:#FFE8B8; --ph-fg:#6A4000; --ph-set-bg:#D3EFDF; --ph-set-fg:#114B29;
+  --hit:#FFF0A8;
+  --font-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1217; --surface:#141B22; --surface-2:#1A232C; --code-bg:#0F151B;
+    --line:#25303A; --line-strong:#394652;
+    --fg:#E3E9EF; --fg-2:#A8B4BF; --fg-3:#7D8A96;
+    --accent:#47B6C1; --accent-soft:#11303A; --accent-fg:#05181B;
+    --warn-bg:#32260E; --warn-fg:#F2CB7C; --warn-line:#6A5220;
+    --danger-bg:#381614; --danger-fg:#FFB0A6; --danger-line:#6C2B25;
+    --ok-bg:#0F2F1E; --ok-fg:#8BDFAC;
+    --syn-kw:#9BA8FF; --syn-opt:#C2A5F1; --syn-name:#5BC7D1; --syn-num:#E8AD62;
+    --syn-permit:#72D395; --syn-deny:#FF8C82; --syn-str:#B8CA79; --syn-rx:#EF8AC6; --syn-cmt:#7B8794;
+    --ph-bg:#3A2B0D; --ph-fg:#FFD489; --ph-set-bg:#123423; --ph-set-fg:#91E5B2;
+    --hit:#3A3412;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1217; --surface:#141B22; --surface-2:#1A232C; --code-bg:#0F151B;
+  --line:#25303A; --line-strong:#394652;
+  --fg:#E3E9EF; --fg-2:#A8B4BF; --fg-3:#7D8A96;
+  --accent:#47B6C1; --accent-soft:#11303A; --accent-fg:#05181B;
+  --warn-bg:#32260E; --warn-fg:#F2CB7C; --warn-line:#6A5220;
+  --danger-bg:#381614; --danger-fg:#FFB0A6; --danger-line:#6C2B25;
+  --ok-bg:#0F2F1E; --ok-fg:#8BDFAC;
+  --syn-kw:#9BA8FF; --syn-opt:#C2A5F1; --syn-name:#5BC7D1; --syn-num:#E8AD62;
+  --syn-permit:#72D395; --syn-deny:#FF8C82; --syn-str:#B8CA79; --syn-rx:#EF8AC6; --syn-cmt:#7B8794;
+  --ph-bg:#3A2B0D; --ph-fg:#FFD489; --ph-set-bg:#123423; --ph-set-fg:#91E5B2;
+  --hit:#3A3412;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code,kbd{font-family:var(--font-mono);font-size:.88em}
+p code,li code,td code{background:var(--surface-2);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;letter-spacing:.005em;text-wrap:balance;margin:0}
+
+.shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:40px;max-width:1320px;margin:0 auto;padding-inline:24px;padding-block:0 64px}
+
+/* ---------- rail ---------- */
+.rail{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;max-height:100vh;overflow-y:auto;padding-block:28px 24px}
+.brand{display:flex;flex-direction:column;gap:2px;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.brand b{font-family:var(--font-display);font-size:20px;font-weight:600}
+.brand span{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3)}
+.rail h4{font-family:var(--font-body);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--fg-3);margin:18px 0 6px}
+.rail ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.rail a{display:flex;gap:10px;align-items:baseline;padding:5px 10px;border-radius:6px;text-decoration:none;color:var(--fg-2);font-size:13.5px;line-height:1.35}
+.rail a .n{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);min-width:2ch;font-variant-numeric:tabular-nums}
+.rail a:hover{background:var(--surface-2);color:var(--fg)}
+.rail a.active{background:var(--accent-soft);color:var(--fg)}
+.rail a.active .n{color:var(--accent)}
+
+/* ---------- toolbar ---------- */
+.main{min-width:0}
+.toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-block:14px;border-bottom:1px solid var(--line)}
+.search{flex:1 1 260px;min-width:0;position:relative}
+.search input{width:100%;font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);padding:8px 12px 8px 34px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--fg-3);fill:none;stroke-width:2}
+.search input::placeholder{color:var(--fg-3)}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--fg-2);cursor:pointer;user-select:none}
+.switch input{appearance:none;width:32px;height:18px;border-radius:9px;background:var(--line-strong);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(14px)}
+.btn{font:inherit;font-size:13.5px;font-weight:500;border-radius:var(--r);padding:7px 14px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--fg-3)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{font-size:12.5px;padding:4px 10px}
+.pill{font-family:var(--font-mono);font-size:12px;padding:4px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-line);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.done{background:var(--ok-bg);color:var(--ok-fg);border-color:transparent}
+.searchinfo{flex-basis:100%;font-size:12.5px;color:var(--fg-3);margin-top:-4px}
+
+/* ---------- header ---------- */
+.hero{padding-block:36px 8px;display:flex;flex-direction:column;gap:14px;max-width:820px}
+.hero h1{font-size:clamp(32px,4.6vw,46px);line-height:1.05}
+.hero p{margin:0;color:var(--fg-2);font-size:16px;max-width:68ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-family:var(--font-mono);font-size:11.5px;padding:3px 8px;border-radius:5px;background:var(--surface-2);color:var(--fg-2)}
+
+.callout{display:flex;flex-direction:column;gap:4px;border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn-fg);border-radius:var(--r);padding:12px 16px;font-size:14px}
+.callout b{font-weight:600}
+.callout.danger{border-color:var(--danger-line);background:var(--danger-bg);color:var(--danger-fg)}
+.callout.info{border-color:var(--line);background:var(--surface);color:var(--fg-2)}
+.callout p{margin:0}
+.callout code{background:transparent;padding:0;color:inherit;font-weight:500}
+
+/* ---------- sections ---------- */
+.sec{padding-block:36px 4px;scroll-margin-top:80px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec + .sec{border-top:1px solid var(--line)}
+.sechead{display:flex;gap:14px;align-items:baseline}
+.sechead .n{font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:500;font-variant-numeric:tabular-nums}
+.sechead h2{font-size:26px;line-height:1.15}
+.lead{margin:0;color:var(--fg-2);max-width:72ch}
+.groupmark{font-family:var(--font-body);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--fg-3);padding-block:44px 0}
+
+/* ---------- code ---------- */
+.codewrap{border:1px solid var(--line);border-radius:var(--r);background:var(--code-bg);overflow:hidden;min-width:0}
+.codebar{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.codebar .lang{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3)}
+.codebar .lang b{color:var(--fg-2);font-weight:500}
+.codebar .sp{flex:1}
+.scroll{overflow-x:auto}
+.code{font-family:var(--font-mono);font-size:13px;line-height:1.7;white-space:pre;counter-reset:ln;padding-block:10px;margin:0;min-width:max-content;tab-size:2}
+.code .l{display:block;padding-inline:0 28px;counter-increment:ln}
+.code .l::before{content:counter(ln);display:inline-block;width:4ch;padding-right:2ch;text-align:right;color:var(--fg-3);opacity:.55;user-select:none;font-variant-numeric:tabular-nums}
+.code .l.hit{background:var(--hit)}
+.c-kw{color:var(--syn-kw);font-weight:500}
+.c-opt{color:var(--syn-opt)}
+.c-name{color:var(--syn-name)}
+.c-num{color:var(--syn-num)}
+.c-permit{color:var(--syn-permit);font-weight:500}
+.c-deny{color:var(--syn-deny);font-weight:500}
+.c-str{color:var(--syn-str)}
+.c-rx{color:var(--syn-rx)}
+.cmt,.cmt *{color:var(--syn-cmt)}
+.cmt{font-style:italic}
+.ph{background:var(--ph-bg);color:var(--ph-fg)!important;border-radius:4px;padding:0 3px;font-style:normal}
+.ph.set{background:var(--ph-set-bg);color:var(--ph-set-fg)!important}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.mono{font-family:var(--font-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--fg-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .ph{font-family:var(--font-mono);font-size:12px}
+
+/* ---------- flow strips ---------- */
+.flow{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.flow li{display:flex;align-items:center;gap:6px;font-size:13px}
+.flow li .box{border:1px solid var(--line-strong);background:var(--surface);border-radius:6px;padding:4px 10px;display:flex;gap:8px;align-items:baseline}
+.flow li .box i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.flow li .box.deny{border-color:var(--danger-line)}
+.flow li .box.deny i{color:var(--syn-deny)}
+.flow li .box.permit{border-color:var(--accent)}
+.flow li .box.permit i{color:var(--accent)}
+.flow li + li::before{content:"\2192";color:var(--fg-3)}
+.flowlabel{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:6px}
+
+/* ---------- params ---------- */
+.params{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.pgroup{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.pgroup h3{font-size:16px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:12.5px;font-weight:500;color:var(--fg-2)}
+.field input{font-family:var(--font-mono);font-size:13px;color:var(--fg);background:var(--bg);border:1px solid var(--line-strong);border-radius:6px;padding:7px 10px;width:100%;min-width:0}
+.field input::placeholder{color:var(--fg-3);opacity:.8}
+.field input.ok{border-color:var(--ok-fg)}
+.field input[aria-invalid="true"]{border-color:var(--syn-deny)}
+.field .err{font-size:12px;color:var(--syn-deny);margin:0}
+.field .hint{font-size:12px;color:var(--fg-3);margin:0}
+.paramsbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.paramsbar p{margin:0;font-size:13px;color:var(--fg-3);max-width:70ch}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.check li{border-bottom:1px solid var(--line)}
+.check li:last-child{border-bottom:0}
+.check label{display:flex;gap:12px;padding:11px 16px;cursor:pointer;align-items:flex-start}
+.check input{margin-top:4px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.check .t{display:flex;flex-direction:column;gap:2px}
+.check .t b{font-weight:500;font-size:14px}
+.check .t span{font-size:13px;color:var(--fg-3)}
+.check input:checked + .t b{color:var(--fg-3);text-decoration:line-through}
+.criteria{margin:0;padding-left:20px;color:var(--fg-2);display:flex;flex-direction:column;gap:4px;max-width:72ch}
+
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--fg-3)}
+
+/* ---------- responsive ---------- */
+@media (max-width: 960px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0;padding-inline:16px}
+  .rail{position:static;max-height:none;overflow:visible;padding-block:16px 4px}
+  .brand{padding-bottom:12px;margin-bottom:8px}
+  .rail h4{display:none}
+  .rail .navgroups{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px}
+  .rail ul{flex-direction:row;gap:4px}
+  .rail a{white-space:nowrap;border:1px solid var(--line);background:var(--surface)}
+  .sec{scroll-margin-top:140px}
+  .sechead h2{font-size:22px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;scroll-behavior:auto!important} }
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+
+
+<div class="shell">
+  <nav class="rail" aria-label="Seções">
+    <div class="brand">
+      <b>Borda BGP</b>
+      <span>Huawei VRP8 · V800R021C10</span>
+    </div>
+    <div class="navgroups" id="nav"></div>
+  </nav>
+
+  <main class="main">
+    <div class="toolbar" role="toolbar" aria-label="Ferramentas">
+      <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input id="q" type="search" placeholder="Buscar comando, lista ou policy (ex.: PL-BOGONS, route-limit)" aria-label="Buscar na configuração" autocomplete="off">
+      </div>
+      <label class="switch"><input id="showCmt" type="checkbox" checked> Comentários</label>
+      <span class="pill" id="status">0/0 parâmetros</span>
+      <button class="btn primary" id="copyAll" type="button">Copiar configuração</button>
+      <div class="searchinfo" id="searchinfo" hidden></div>
+    </div>
+
+    <header class="hero" id="topo">
+      <div class="tags"><span>Huawei VRP8</span><span>V800R021C10</span><span>eBGP · 2 trânsitos + IX</span><span>Dual-stack</span><span>route-policy</span></div>
+      <h1>Modelo BGP de borda</h1>
+      <p>Configuração de referência na ordem de build: listas de match, filtros, âncoras, sessão e aplicação por address-family. Preencha os parâmetros e a configuração inteira é reescrita com os seus valores.</p>
+      <div class="callout danger" role="note">
+        <b>Não aplique com os valores de documentação.</b>
+        <p>Os placeholders (RFC 5398, 5737 e 3849) colidem com os próprios filtros de bogon: o AS 64500 cai em <code>ASP-BOGON-ASN</code> e o 203.0.113.0/24 cai em <code>PL-BOGONS-V4</code>. Substitua todos antes de qualquer janela.</p>
+      </div>
+    </header>
+
+    <div id="content"></div>
+
+    <footer>
+      Itens marcados VALIDAR dependem de release: confirme com <code>?</code> no CLI da V800R021C10 ou na documentação Huawei antes da janela. Os valores digitados nos parâmetros ficam só nesta aba e não são salvos. Arquivo-fonte: <a href="configs/bgp-modelo-ideal-vrp8.cfg">configs/bgp-modelo-ideal-vrp8.cfg</a>.
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===================== parametros ===================== */
+var GROUPS = [
+  {id:"local", title:"Rede local"},
+  {id:"ta", title:"Trânsito A"},
+  {id:"tb", title:"Trânsito B"},
+  {id:"ix", title:"IX · route servers"},
+  {id:"pol", title:"Política e RPKI"}
+];
+var FIELDS = [
+  {k:"ASN_L",  g:"local", label:"ASN local", def:"64496", t:"asn"},
+  {k:"RID",    g:"local", label:"Router-id (Loopback0)", def:"10.255.255.1", t:"ipv4"},
+  {k:"AGG4",   g:"local", label:"Agregado IPv4", def:"203.0.113.0/24", t:"cidr4"},
+  {k:"AGG6",   g:"local", label:"Agregado IPv6", def:"2001:DB8::/32", t:"cidr6"},
+  {k:"BH4",    g:"local", label:"IP alvo de RTBH (exemplo)", def:"203.0.113.10", t:"ipv4"},
+  {k:"TA_ASN", g:"ta", label:"ASN do trânsito A", def:"64500", t:"asn"},
+  {k:"TA_V4",  g:"ta", label:"Peer IPv4", def:"198.51.100.1", t:"ipv4"},
+  {k:"TA_V6",  g:"ta", label:"Peer IPv6", def:"2001:DB8:A::1", t:"ipv6"},
+  {k:"TA_BH",  g:"ta", label:"Community RTBH do upstream", def:"64500:666", t:"comm"},
+  {k:"TB_ASN", g:"tb", label:"ASN do trânsito B", def:"64501", t:"asn"},
+  {k:"TB_V4",  g:"tb", label:"Peer IPv4", def:"198.51.100.5", t:"ipv4"},
+  {k:"TB_V6",  g:"tb", label:"Peer IPv6", def:"2001:DB8:B::1", t:"ipv6"},
+  {k:"TB_TE",  g:"tb", label:"Community de TE do upstream", def:"64501:100", t:"comm"},
+  {k:"IX_ASN", g:"ix", label:"ASN dos route servers", def:"64502", t:"asn"},
+  {k:"RS1_V4", g:"ix", label:"RS01 IPv4", def:"192.0.2.1", t:"ipv4"},
+  {k:"RS2_V4", g:"ix", label:"RS02 IPv4", def:"192.0.2.2", t:"ipv4"},
+  {k:"RS1_V6", g:"ix", label:"RS01 IPv6", def:"2001:DB8:100::1", t:"ipv6"},
+  {k:"RS2_V6", g:"ix", label:"RS02 IPv6", def:"2001:DB8:100::2", t:"ipv6"},
+  {k:"BLK_ASN",g:"pol", label:"ASN barrado por política", def:"64510", t:"asn"},
+  {k:"RPKI_IP",g:"pol", label:"Validador RPKI (RTR)", def:"10.255.0.10", t:"ipv4"}
+];
+var FIELD = {}; FIELDS.forEach(function(f){ FIELD[f.k] = f; });
+
+function lenToMask(len){
+  var m = len === 0 ? 0 : (0xFFFFFFFF << (32 - len)) >>> 0;
+  return [m>>>24, (m>>>16)&255, (m>>>8)&255, m&255].join(".");
+}
+var DERIVED = {
+  AGG4_NET: {p:"AGG4", f:function(v){ return v.split("/")[0]; }},
+  AGG4_LEN: {p:"AGG4", f:function(v){ return v.split("/")[1]; }},
+  AGG4_MASK:{p:"AGG4", f:function(v){ return lenToMask(parseInt(v.split("/")[1],10)); }},
+  AGG6_NET: {p:"AGG6", f:function(v){ return v.split("/")[0]; }},
+  AGG6_LEN: {p:"AGG6", f:function(v){ return v.split("/")[1]; }}
+};
+var values = {};
+function val(k){
+  var d = DERIVED[k];
+  if (d){ var p = values[d.p] != null ? values[d.p] : FIELD[d.p].def; return d.f(p); }
+  return values[k] != null ? values[k] : (FIELD[k] ? FIELD[k].def : k);
+}
+function isSet(k){ var d = DERIVED[k]; return (d ? d.p : k) in values; }
+function labelOf(k){ var d = DERIVED[k]; return FIELD[d ? d.p : k].label; }
+
+/* ---------- validacao ---------- */
+function ip4ok(v){
+  var m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(v);
+  if (!m) return false;
+  for (var i=1;i<5;i++){ if (+m[i] > 255) return false; }
+  return true;
+}
+function ip4int(v){ return v.split(".").reduce(function(a,o){ return ((a<<8)>>>0) + (+o); }, 0) >>> 0; }
+function ip6ok(v){
+  if (!/^[0-9a-fA-F:]+$/.test(v) || v.indexOf(":") < 0) return false;
+  try { new URL("http://[" + v + "]/"); return true; } catch(e){ return false; }
+}
+function asnNote(n){
+  if (n >= 64496 && n <= 64511) return "Faixa de documentação (RFC 5398).";
+  if ((n >= 64512 && n <= 65534) || (n >= 4200000000 && n <= 4294967294)) return "Faixa privada: não use em eBGP público.";
+  if (n > 65535) return "ASN de 4 bytes.";
+  return "";
+}
+function validate(f, v){
+  if (f.t === "asn"){
+    if (!/^\d+$/.test(v)) return {err:"Use só dígitos (formato asplain)."};
+    var n = +v;
+    if (n < 1 || n > 4294967295 || n === 23456) return {err:"ASN fora da faixa válida (1–4294967295, exceto 23456)."};
+    return {v:String(n), hint:asnNote(n)};
+  }
+  if (f.t === "ipv4"){
+    return ip4ok(v) ? {v:v} : {err:"Endereço IPv4 inválido."};
+  }
+  if (f.t === "ipv6"){
+    return ip6ok(v) ? {v:v.toUpperCase()} : {err:"Endereço IPv6 inválido."};
+  }
+  if (f.t === "cidr4"){
+    var a = v.split("/");
+    if (a.length !== 2 || !ip4ok(a[0]) || !/^\d{1,2}$/.test(a[1]) || +a[1] > 32) return {err:"Use rede/máscara, ex.: 203.0.113.0/24."};
+    var len = +a[1], mask = len === 0 ? 0 : (0xFFFFFFFF << (32-len)) >>> 0, ip = ip4int(a[0]);
+    if (((ip & ~mask) >>> 0) !== 0){
+      var net = (ip & mask) >>> 0;
+      var s = [net>>>24,(net>>>16)&255,(net>>>8)&255,net&255].join(".");
+      return {err:"Bits de host setados. A rede correta é " + s + "/" + len + "."};
+    }
+    return {v:a[0] + "/" + len};
+  }
+  if (f.t === "cidr6"){
+    var b = v.split("/");
+    if (b.length !== 2 || !ip6ok(b[0]) || !/^\d{1,3}$/.test(b[1]) || +b[1] > 128) return {err:"Use prefixo/tamanho, ex.: 2001:DB8::/32."};
+    return {v:b[0].toUpperCase() + "/" + (+b[1])};
+  }
+  if (f.t === "comm"){
+    var c = /^(\d{1,5}):(\d{1,5})$/.exec(v);
+    if (!c || +c[1] > 65535 || +c[2] > 65535) return {err:"Standard community aa:nn, cada campo até 65535."};
+    return {v:(+c[1]) + ":" + (+c[2])};
+  }
+  return {v:v};
+}
+
+/* ===================== conteudo ===================== */
+var CONFIG = [
+{id:"global", n:"01", nav:"Global", title:"Global",
+ lead:"Habilita o BFD no sistema. Sem o processo global, os comandos <code>peer … bfd</code> da seção 11 não têm efeito.",
+ code:
+`bfd`},
+
+{id:"prefix-v4", n:"02", nav:"Prefix-lists IPv4", title:"Prefix-lists IPv4",
+ lead:"Bogons e prefixos próprios com <code>less-equal 32</code> para pegar qualquer more-specific no import. O tamanho aceito fica em /8 a /24. No export o match é exato e separado por peer, que é onde entra a engenharia de tráfego.",
+ code:
+`# Bogons IPv4: sempre "le 32" para pegar qualquer more-specific
+ip ip-prefix PL-BOGONS-V4 index 10 permit 0.0.0.0 8 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 20 permit 10.0.0.0 8 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 30 permit 100.64.0.0 10 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 40 permit 127.0.0.0 8 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 50 permit 169.254.0.0 16 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 60 permit 172.16.0.0 12 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 70 permit 192.0.0.0 24 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 80 permit 192.0.2.0 24 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 90 permit 192.88.99.0 24 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 100 permit 192.168.0.0 16 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 110 permit 198.18.0.0 15 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 120 permit 198.51.100.0 24 less-equal 32
+ip ip-prefix PL-BOGONS-V4 index 130 permit 203.0.113.0 24 less-equal 32
+# 224.0.0.0/3 cobre multicast (224/4) e reservado (240/4)
+ip ip-prefix PL-BOGONS-V4 index 140 permit 224.0.0.0 3 less-equal 32
+#
+# Prefixos proprios: anti-hijack no import
+ip ip-prefix PL-PROPRIOS-V4 index 10 permit {{AGG4_NET}} {{AGG4_LEN}} less-equal 32
+#
+# Tamanho aceito no import: /8 a /24
+ip ip-prefix PL-TAMANHO-V4 index 10 permit 0.0.0.0 0 greater-equal 8 less-equal 24
+#
+# Export por peer: match EXATO
+ip ip-prefix PL-EXP-TRANSITO-A-V4 index 10 permit {{AGG4_NET}} {{AGG4_LEN}}
+ip ip-prefix PL-EXP-TRANSITO-B-V4 index 10 permit {{AGG4_NET}} {{AGG4_LEN}}
+ip ip-prefix PL-EXP-IX-V4 index 10 permit {{AGG4_NET}} {{AGG4_LEN}}
+#
+# RTBH: so /32 dentro do proprio bloco
+ip ip-prefix PL-BLACKHOLE-V4 index 10 permit {{AGG4_NET}} {{AGG4_LEN}} greater-equal 32 less-equal 32`},
+
+{id:"prefix-v6", n:"03", nav:"Prefix-lists IPv6", title:"Prefix-lists IPv6",
+ lead:"Mesma lógica do IPv4. O filtro de tamanho aceita só /12 a /48 dentro de 2000::/3, o que já descarta ULA, link-local e multicast. O export nunca leva <code>less-equal 128</code>.",
+ code:
+`ip ipv6-prefix PL-BOGONS-V6 index 10 permit :: 8 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 20 permit 100:: 64 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 30 permit 2001:: 32 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 40 permit 2001:2:: 48 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 50 permit 2001:10:: 28 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 60 permit 2001:DB8:: 32 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 70 permit 2002:: 16 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 80 permit 3FFE:: 16 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 90 permit FC00:: 7 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 100 permit FE80:: 10 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 110 permit FEC0:: 10 less-equal 128
+ip ipv6-prefix PL-BOGONS-V6 index 120 permit FF00:: 8 less-equal 128
+#
+ip ipv6-prefix PL-PROPRIOS-V6 index 10 permit {{AGG6_NET}} {{AGG6_LEN}} less-equal 128
+#
+# Tamanho aceito: /12 a /48, somente dentro de global unicast (2000::/3)
+ip ipv6-prefix PL-TAMANHO-V6 index 10 permit 2000:: 3 greater-equal 12 less-equal 48
+#
+# Export: match EXATO (nunca "le 128")
+ip ipv6-prefix PL-EXP-TRANSITO-A-V6 index 10 permit {{AGG6_NET}} {{AGG6_LEN}}
+ip ipv6-prefix PL-EXP-TRANSITO-B-V6 index 10 permit {{AGG6_NET}} {{AGG6_LEN}}
+ip ipv6-prefix PL-EXP-IX-V6 index 10 permit {{AGG6_NET}} {{AGG6_LEN}}`},
+
+{id:"as-path", n:"04", nav:"AS-path filters", title:"AS-path filters",
+ lead:"Todo regex ancorado com <code>_</code>, <code>^</code> ou <code>$</code>. Sem âncora, <code>.*6939.*</code> também casa 16939 e 69390. O <code>^ASN_</code> dos trânsitos compensa o <code>undo check-first-as</code>, que precisa ficar global por causa dos route servers.",
+ code:
+`# Rota originada localmente (camada 2 do export)
+ip as-path-filter ASP-LOCAL index 10 permit ^$
+#
+# Primeiro AS = o proprio upstream
+ip as-path-filter ASP-FIRST-TRANSITO-A index 10 permit ^{{TA_ASN}}_
+ip as-path-filter ASP-FIRST-TRANSITO-B index 10 permit ^{{TB_ASN}}_
+#
+# ASN barrado por politica comercial
+ip as-path-filter ASP-DROP-POLITICA index 10 permit _{{BLK_ASN}}_
+#
+# ASNs reservados/privados/documentacao (faixas IANA special-purpose)
+ip as-path-filter ASP-BOGON-ASN index 10 permit _0_
+ip as-path-filter ASP-BOGON-ASN index 20 permit _23456_
+ip as-path-filter ASP-BOGON-ASN index 30 permit _(6449[6-9])_|_(6450[0-9])_|_(6451[0-1])_|_(6553[6-9])_|_(6554[0-9])_|_(6555[0-1])_
+ip as-path-filter ASP-BOGON-ASN index 40 permit _6(4(5(1[2-9]|[2-9][0-9])|[6-9][0-9][0-9])|5([0-4][0-9][0-9]|5([0-2][0-9]|3[0-5])))_
+ip as-path-filter ASP-BOGON-ASN index 50 permit _6555[2-9]_|_655[6-9][0-9]_|_65[6-9][0-9][0-9]_|_6[6-9][0-9][0-9][0-9]_
+ip as-path-filter ASP-BOGON-ASN index 60 permit _[7-9][0-9][0-9][0-9][0-9]_|_1[0-2][0-9][0-9][0-9][0-9]_|_130[0-9][0-9][0-9]_
+ip as-path-filter ASP-BOGON-ASN index 70 permit _1310[0-6][0-9]_|_13107[0-1]_
+ip as-path-filter ASP-BOGON-ASN index 80 permit _42[0-8][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_
+ip as-path-filter ASP-BOGON-ASN index 90 permit _(429[0-3][0-9][0-9][0-9][0-9][0-9][0-9])_|_(4294[0-8][0-9][0-9][0-9][0-9][0-9])_
+ip as-path-filter ASP-BOGON-ASN index 100 permit _(42949[0-5][0-9][0-9][0-9][0-9])_|_(429496[0-6][0-9][0-9][0-9])_
+ip as-path-filter ASP-BOGON-ASN index 110 permit _(4294967[0-1][0-9][0-9])_|_(42949672[0-8][0-9])_|_(429496729[0-5])_`},
+
+{id:"communities", n:"05", nav:"Community filters", title:"Community filters",
+ lead:"As tags de origem são marcadas no import e usadas no export para nunca reanunciar rota aprendida de fora. Entradas em índices separados funcionam como OR. O filtro de namespace limpa no import qualquer community sua que o peer tente injetar.",
+ extra:'<div class="callout" id="warn4b" hidden role="note"><b>ASN de 4 bytes não cabe em standard community.</b><p>O campo <code>aa</code> tem 16 bits, então <code>{ASN}:1000</code> é inválido. Use large community (asn:função:origem) com <code>ip large-community-filter</code> e <code>apply large-community</code>, e VALIDE o suporte na release com <code>?</code>.</p></div>' +
+   '<div class="tablewrap"><table><thead><tr><th>Community</th><th>Significado</th><th>Quem marca</th><th>Onde é usada</th></tr></thead><tbody>' +
+   '<tr><td class="mono"><span class="ph" data-k="ASN_L"></span>:1000</td><td>Aprendido do trânsito A</td><td>Import trânsito A</td><td>Deny no export (todos)</td></tr>' +
+   '<tr><td class="mono"><span class="ph" data-k="ASN_L"></span>:1001</td><td>Aprendido do trânsito B</td><td>Import trânsito B</td><td>Deny no export (todos)</td></tr>' +
+   '<tr><td class="mono"><span class="ph" data-k="ASN_L"></span>:2000</td><td>Aprendido do IX</td><td>Import route servers</td><td>Deny no export (todos)</td></tr>' +
+   '<tr><td class="mono"><span class="ph" data-k="ASN_L"></span>:666</td><td>Gatilho interno de RTBH</td><td><code>RP-SET-BLACKHOLE</code></td><td>Export trânsito A, node 15</td></tr>' +
+   '</tbody></table></div>',
+ code:
+`# Tags de origem (marcadas no import). Indices separados = OR
+ip community-filter basic CF-APRENDIDO-EXTERNO index 10 permit {{ASN_L}}:1000
+ip community-filter basic CF-APRENDIDO-EXTERNO index 20 permit {{ASN_L}}:1001
+ip community-filter basic CF-APRENDIDO-EXTERNO index 30 permit {{ASN_L}}:2000
+#
+# Gatilho interno de blackhole
+ip community-filter basic CF-BLACKHOLE-INTERNO index 10 permit {{ASN_L}}:666
+#
+# Qualquer community no proprio namespace (apagada no import)
+# VALIDAR: filtro advanced em "apply comm-filter ... delete"
+ip community-filter advanced CF-NAMESPACE-PROPRIO index 10 permit ^{{ASN_L}}:`},
+
+{id:"policy-base", n:"06", nav:"Policies base", title:"Route-policies base",
+ lead:"Toda policy de import e de export segue a mesma ordem de nós. Isso permite revisar qualquer peer comparando linha a linha. <code>RP-DENY-ALL</code> é o estado inicial de qualquer peer novo, antes de receber a policy real.",
+ extra:'<div><div class="flowlabel">Ordem do import</div><ol class="flow">' +
+   '<li><span class="box deny"><i>10</i>Bogons</span></li>' +
+   '<li><span class="box deny"><i>20</i>Prefixos próprios</span></li>' +
+   '<li><span class="box deny"><i>30</i>ASN bogon</span></li>' +
+   '<li><span class="box deny"><i>40</i>ASN de política</span></li>' +
+   '<li><span class="box"><i>50</i>Limpa namespace · goto</span></li>' +
+   '<li><span class="box permit"><i>60</i>Aceita, LP e tag</span></li>' +
+   '<li><span class="box deny"><i>999</i>Deny explícito</span></li></ol></div>' +
+   '<div><div class="flowlabel">Ordem do export</div><ol class="flow">' +
+   '<li><span class="box deny"><i>10</i>Aprendido externo</span></li>' +
+   '<li><span class="box permit"><i>15</i>RTBH /32 (só trânsito A)</span></li>' +
+   '<li><span class="box permit"><i>20</i>Próprio + ^$</span></li>' +
+   '<li><span class="box deny"><i>999</i>Deny explícito</span></li></ol></div>',
+ code:
+`route-policy RP-DENY-ALL deny node 10
+ description DENY-ALL-PARA-PEER-NOVO
+#
+# Marca o /32 de blackhole na originacao (uso sob demanda)
+route-policy RP-SET-BLACKHOLE permit node 10
+ description MARCA-GATILHO-RTBH
+ apply community {{ASN_L}}:666`},
+
+{id:"policy-ta", n:"07", nav:"Policies trânsito A", title:"Route-policies · trânsito A",
+ lead:"O node 50 não tem <code>if-match</code>, então casa tudo, e o <code>goto next-node</code> garante que a limpeza de communities acontece antes da tag do node 60. O node 15 do export envia o /32 de RTBH com a community do upstream, substituindo as demais.",
+ code:
+`# ======================== TRANSITO A - IPv4 ==========================
+route-policy RP-TRANSITO-A-IN-V4 deny node 10
+ description DENY-BOGONS
+ if-match ip-prefix PL-BOGONS-V4
+route-policy RP-TRANSITO-A-IN-V4 deny node 20
+ description DENY-PREFIXOS-PROPRIOS
+ if-match ip-prefix PL-PROPRIOS-V4
+route-policy RP-TRANSITO-A-IN-V4 deny node 30
+ description DENY-ASN-BOGON
+ if-match as-path-filter ASP-BOGON-ASN
+route-policy RP-TRANSITO-A-IN-V4 deny node 40
+ description DENY-POLITICA
+ if-match as-path-filter ASP-DROP-POLITICA
+# VALIDAR: comportamento de goto next-node na release
+route-policy RP-TRANSITO-A-IN-V4 permit node 50
+ description LIMPA-NAMESPACE-PROPRIO
+ apply comm-filter CF-NAMESPACE-PROPRIO delete
+ goto next-node
+route-policy RP-TRANSITO-A-IN-V4 permit node 60
+ description ACEITA-TRANSITO-A
+ if-match ip-prefix PL-TAMANHO-V4
+ if-match as-path-filter ASP-FIRST-TRANSITO-A
+ apply local-preference 200
+ apply community {{ASN_L}}:1000 additive
+route-policy RP-TRANSITO-A-IN-V4 deny node 999
+ description DENY-EXPLICITO
+#
+route-policy RP-TRANSITO-A-OUT-V4 deny node 10
+ description DENY-APRENDIDO-EXTERNO
+ if-match community-filter CF-APRENDIDO-EXTERNO
+route-policy RP-TRANSITO-A-OUT-V4 permit node 15
+ description RTBH-PARA-UPSTREAM-A
+ if-match ip-prefix PL-BLACKHOLE-V4
+ if-match community-filter CF-BLACKHOLE-INTERNO
+ if-match as-path-filter ASP-LOCAL
+# sem additive: substitui tudo pela community RTBH do upstream
+ apply community {{TA_BH}} no-export
+route-policy RP-TRANSITO-A-OUT-V4 permit node 20
+ description ANUNCIA-PROPRIOS
+ if-match ip-prefix PL-EXP-TRANSITO-A-V4
+ if-match as-path-filter ASP-LOCAL
+ apply community none
+route-policy RP-TRANSITO-A-OUT-V4 deny node 999
+ description DENY-EXPLICITO
+#
+# ======================== TRANSITO A - IPv6 ==========================
+route-policy RP-TRANSITO-A-IN-V6 deny node 10
+ description DENY-BOGONS
+ if-match ipv6 address prefix-list PL-BOGONS-V6
+route-policy RP-TRANSITO-A-IN-V6 deny node 20
+ description DENY-PREFIXOS-PROPRIOS
+ if-match ipv6 address prefix-list PL-PROPRIOS-V6
+route-policy RP-TRANSITO-A-IN-V6 deny node 30
+ description DENY-ASN-BOGON
+ if-match as-path-filter ASP-BOGON-ASN
+route-policy RP-TRANSITO-A-IN-V6 deny node 40
+ description DENY-POLITICA
+ if-match as-path-filter ASP-DROP-POLITICA
+route-policy RP-TRANSITO-A-IN-V6 permit node 50
+ description LIMPA-NAMESPACE-PROPRIO
+ apply comm-filter CF-NAMESPACE-PROPRIO delete
+ goto next-node
+route-policy RP-TRANSITO-A-IN-V6 permit node 60
+ description ACEITA-TRANSITO-A
+ if-match ipv6 address prefix-list PL-TAMANHO-V6
+ if-match as-path-filter ASP-FIRST-TRANSITO-A
+ apply local-preference 200
+ apply community {{ASN_L}}:1000 additive
+route-policy RP-TRANSITO-A-IN-V6 deny node 999
+ description DENY-EXPLICITO
+#
+route-policy RP-TRANSITO-A-OUT-V6 deny node 10
+ description DENY-APRENDIDO-EXTERNO
+ if-match community-filter CF-APRENDIDO-EXTERNO
+route-policy RP-TRANSITO-A-OUT-V6 permit node 20
+ description ANUNCIA-PROPRIOS
+ if-match ipv6 address prefix-list PL-EXP-TRANSITO-A-V6
+ if-match as-path-filter ASP-LOCAL
+ apply community none
+route-policy RP-TRANSITO-A-OUT-V6 deny node 999
+ description DENY-EXPLICITO`},
+
+{id:"policy-tb", n:"08", nav:"Policies trânsito B", title:"Route-policies · trânsito B",
+ lead:"Estrutura idêntica ao trânsito A, com tag própria. No export IPv4, a community de TE documentada pelo upstream B entra sem <code>additive</code>, então substitui qualquer outra.",
+ code:
+`# ======================== TRANSITO B - IPv4 ==========================
+route-policy RP-TRANSITO-B-IN-V4 deny node 10
+ description DENY-BOGONS
+ if-match ip-prefix PL-BOGONS-V4
+route-policy RP-TRANSITO-B-IN-V4 deny node 20
+ description DENY-PREFIXOS-PROPRIOS
+ if-match ip-prefix PL-PROPRIOS-V4
+route-policy RP-TRANSITO-B-IN-V4 deny node 30
+ description DENY-ASN-BOGON
+ if-match as-path-filter ASP-BOGON-ASN
+route-policy RP-TRANSITO-B-IN-V4 deny node 40
+ description DENY-POLITICA
+ if-match as-path-filter ASP-DROP-POLITICA
+route-policy RP-TRANSITO-B-IN-V4 permit node 50
+ description LIMPA-NAMESPACE-PROPRIO
+ apply comm-filter CF-NAMESPACE-PROPRIO delete
+ goto next-node
+route-policy RP-TRANSITO-B-IN-V4 permit node 60
+ description ACEITA-TRANSITO-B
+ if-match ip-prefix PL-TAMANHO-V4
+ if-match as-path-filter ASP-FIRST-TRANSITO-B
+ apply local-preference 200
+ apply community {{ASN_L}}:1001 additive
+route-policy RP-TRANSITO-B-IN-V4 deny node 999
+ description DENY-EXPLICITO
+#
+route-policy RP-TRANSITO-B-OUT-V4 deny node 10
+ description DENY-APRENDIDO-EXTERNO
+ if-match community-filter CF-APRENDIDO-EXTERNO
+route-policy RP-TRANSITO-B-OUT-V4 permit node 20
+ description ANUNCIA-PROPRIOS
+ if-match ip-prefix PL-EXP-TRANSITO-B-V4
+ if-match as-path-filter ASP-LOCAL
+# community de TE do upstream B (sem additive = substitui)
+ apply community {{TB_TE}}
+route-policy RP-TRANSITO-B-OUT-V4 deny node 999
+ description DENY-EXPLICITO
+#
+# ======================== TRANSITO B - IPv6 ==========================
+route-policy RP-TRANSITO-B-IN-V6 deny node 10
+ description DENY-BOGONS
+ if-match ipv6 address prefix-list PL-BOGONS-V6
+route-policy RP-TRANSITO-B-IN-V6 deny node 20
+ description DENY-PREFIXOS-PROPRIOS
+ if-match ipv6 address prefix-list PL-PROPRIOS-V6
+route-policy RP-TRANSITO-B-IN-V6 deny node 30
+ description DENY-ASN-BOGON
+ if-match as-path-filter ASP-BOGON-ASN
+route-policy RP-TRANSITO-B-IN-V6 deny node 40
+ description DENY-POLITICA
+ if-match as-path-filter ASP-DROP-POLITICA
+route-policy RP-TRANSITO-B-IN-V6 permit node 50
+ description LIMPA-NAMESPACE-PROPRIO
+ apply comm-filter CF-NAMESPACE-PROPRIO delete
+ goto next-node
+route-policy RP-TRANSITO-B-IN-V6 permit node 60
+ description ACEITA-TRANSITO-B
+ if-match ipv6 address prefix-list PL-TAMANHO-V6
+ if-match as-path-filter ASP-FIRST-TRANSITO-B
+ apply local-preference 200
+ apply community {{ASN_L}}:1001 additive
+route-policy RP-TRANSITO-B-IN-V6 deny node 999
+ description DENY-EXPLICITO
+#
+route-policy RP-TRANSITO-B-OUT-V6 deny node 10
+ description DENY-APRENDIDO-EXTERNO
+ if-match community-filter CF-APRENDIDO-EXTERNO
+route-policy RP-TRANSITO-B-OUT-V6 permit node 20
+ description ANUNCIA-PROPRIOS
+ if-match ipv6 address prefix-list PL-EXP-TRANSITO-B-V6
+ if-match as-path-filter ASP-LOCAL
+ apply community none
+route-policy RP-TRANSITO-B-OUT-V6 deny node 999
+ description DENY-EXPLICITO`},
+
+{id:"policy-ix", n:"09", nav:"Policies IX", title:"Route-policies · IX route servers",
+ lead:"Sem checagem de primeiro AS, porque o route server não insere o próprio ASN no path. O LP 300 faz o IX vencer os trânsitos. Communities de ação do route server só entram depois de conferidas na documentação do IX.",
+ code:
+`# ===================== IX ROUTE SERVER - IPv4 ========================
+route-policy RP-IX-RS-IN-V4 deny node 10
+ description DENY-BOGONS
+ if-match ip-prefix PL-BOGONS-V4
+route-policy RP-IX-RS-IN-V4 deny node 20
+ description DENY-PREFIXOS-PROPRIOS
+ if-match ip-prefix PL-PROPRIOS-V4
+route-policy RP-IX-RS-IN-V4 deny node 30
+ description DENY-ASN-BOGON
+ if-match as-path-filter ASP-BOGON-ASN
+route-policy RP-IX-RS-IN-V4 deny node 40
+ description DENY-POLITICA
+ if-match as-path-filter ASP-DROP-POLITICA
+route-policy RP-IX-RS-IN-V4 permit node 50
+ description LIMPA-NAMESPACE-PROPRIO
+ apply comm-filter CF-NAMESPACE-PROPRIO delete
+ goto next-node
+route-policy RP-IX-RS-IN-V4 permit node 60
+ description ACEITA-IX
+ if-match ip-prefix PL-TAMANHO-V4
+# IX preferido sobre transito
+ apply local-preference 300
+ apply community {{ASN_L}}:2000 additive
+route-policy RP-IX-RS-IN-V4 deny node 999
+ description DENY-EXPLICITO
+#
+route-policy RP-IX-RS-OUT-V4 deny node 10
+ description DENY-APRENDIDO-EXTERNO
+ if-match community-filter CF-APRENDIDO-EXTERNO
+route-policy RP-IX-RS-OUT-V4 permit node 20
+ description ANUNCIA-PROPRIOS
+ if-match ip-prefix PL-EXP-IX-V4
+ if-match as-path-filter ASP-LOCAL
+ apply community none
+# Communities de acao do RS: VALIDAR na documentacao do IX antes de usar
+route-policy RP-IX-RS-OUT-V4 deny node 999
+ description DENY-EXPLICITO
+#
+# ===================== IX ROUTE SERVER - IPv6 ========================
+route-policy RP-IX-RS-IN-V6 deny node 10
+ description DENY-BOGONS
+ if-match ipv6 address prefix-list PL-BOGONS-V6
+route-policy RP-IX-RS-IN-V6 deny node 20
+ description DENY-PREFIXOS-PROPRIOS
+ if-match ipv6 address prefix-list PL-PROPRIOS-V6
+route-policy RP-IX-RS-IN-V6 deny node 30
+ description DENY-ASN-BOGON
+ if-match as-path-filter ASP-BOGON-ASN
+route-policy RP-IX-RS-IN-V6 deny node 40
+ description DENY-POLITICA
+ if-match as-path-filter ASP-DROP-POLITICA
+route-policy RP-IX-RS-IN-V6 permit node 50
+ description LIMPA-NAMESPACE-PROPRIO
+ apply comm-filter CF-NAMESPACE-PROPRIO delete
+ goto next-node
+route-policy RP-IX-RS-IN-V6 permit node 60
+ description ACEITA-IX
+ if-match ipv6 address prefix-list PL-TAMANHO-V6
+ apply local-preference 300
+ apply community {{ASN_L}}:2000 additive
+route-policy RP-IX-RS-IN-V6 deny node 999
+ description DENY-EXPLICITO
+#
+route-policy RP-IX-RS-OUT-V6 deny node 10
+ description DENY-APRENDIDO-EXTERNO
+ if-match community-filter CF-APRENDIDO-EXTERNO
+route-policy RP-IX-RS-OUT-V6 permit node 20
+ description ANUNCIA-PROPRIOS
+ if-match ipv6 address prefix-list PL-EXP-IX-V6
+ if-match as-path-filter ASP-LOCAL
+ apply community none
+route-policy RP-IX-RS-OUT-V6 deny node 999
+ description DENY-EXPLICITO`},
+
+{id:"ancoras", n:"10", nav:"Âncoras NULL0", title:"Âncoras de originação",
+ lead:"O <code>network</code> só anuncia o que existe na RIB. A estática para NULL0 mantém o agregado anunciado mesmo sem nenhum more-specific interno ativo. O /32 de RTBH só é ativado durante um incidente.",
+ code:
+`ip route-static {{AGG4_NET}} {{AGG4_MASK}} NULL0 description ANCORA-BGP-AGREGADO-V4
+ipv6 route-static {{AGG6_NET}} {{AGG6_LEN}} NULL0 description ANCORA-BGP-AGREGADO-V6
+#
+# RTBH sob demanda (descomentar no incidente; o /32 e o IP atacado):
+# ip route-static {{BH4}} 255.255.255.255 NULL0 description RTBH-ALVO`},
+
+{id:"bgp-sessao", n:"11", nav:"BGP · sessão", title:"BGP · peers e sessão",
+ lead:"Parâmetros de sessão: BFD, GTSM (<code>valid-ttl-hops</code>), timers e password. Todos precisam ser combinados com o outro lado. Os route servers ficam em peer-group, para não haver diferença de política entre RS01 e RS02.",
+ extra:'<div class="callout" role="note"><b>⚠️ DISRUPTIVO em peer já estabelecido.</b><p>Timer, password e GTSM podem resetar a sessão, e BFD ou GTSM divergentes do outro lado derrubam o peer. Aplique em janela separada da troca de policy, para isolar a causa se algo cair.</p></div>',
+ code:
+`bgp {{ASN_L}}
+ router-id {{RID}}
+ graceful-restart
+# necessario para route server de IX; o primeiro AS dos transitos
+# e verificado por ASP-FIRST-*
+ undo check-first-as
+#
+# --- Transito A ---
+ peer {{TA_V4}} as-number {{TA_ASN}}
+ peer {{TA_V4}} description TRANSITO-A-V4
+ peer {{TA_V4}} timer keepalive 10 hold 30
+ peer {{TA_V4}} bfd min-tx-interval 300 min-rx-interval 300 detect-multiplier 3
+ peer {{TA_V4}} bfd enable
+ peer {{TA_V4}} valid-ttl-hops 1
+# peer {{TA_V4}} password cipher <DEFINIR-COM-UPSTREAM>
+ peer {{TA_V6}} as-number {{TA_ASN}}
+ peer {{TA_V6}} description TRANSITO-A-V6
+ peer {{TA_V6}} timer keepalive 10 hold 30
+ peer {{TA_V6}} bfd min-tx-interval 300 min-rx-interval 300 detect-multiplier 3
+ peer {{TA_V6}} bfd enable
+ peer {{TA_V6}} valid-ttl-hops 1
+#
+# --- Transito B ---
+ peer {{TB_V4}} as-number {{TB_ASN}}
+ peer {{TB_V4}} description TRANSITO-B-V4
+ peer {{TB_V4}} timer keepalive 10 hold 30
+ peer {{TB_V4}} bfd min-tx-interval 300 min-rx-interval 300 detect-multiplier 3
+ peer {{TB_V4}} bfd enable
+ peer {{TB_V4}} valid-ttl-hops 1
+ peer {{TB_V6}} as-number {{TB_ASN}}
+ peer {{TB_V6}} description TRANSITO-B-V6
+ peer {{TB_V6}} timer keepalive 10 hold 30
+ peer {{TB_V6}} bfd min-tx-interval 300 min-rx-interval 300 detect-multiplier 3
+ peer {{TB_V6}} bfd enable
+ peer {{TB_V6}} valid-ttl-hops 1
+#
+# --- IX route servers (peer-group) ---
+ group IX-RS-V4 external
+ peer IX-RS-V4 as-number {{IX_ASN}}
+ peer {{RS1_V4}} group IX-RS-V4
+ peer {{RS1_V4}} description IX-RS01-V4
+ peer {{RS2_V4}} group IX-RS-V4
+ peer {{RS2_V4}} description IX-RS02-V4
+ group IX-RS-V6 external
+ peer IX-RS-V6 as-number {{IX_ASN}}
+ peer {{RS1_V6}} group IX-RS-V6
+ peer {{RS1_V6}} description IX-RS01-V6
+ peer {{RS2_V6}} group IX-RS-V6
+ peer {{RS2_V6}} description IX-RS02-V6`},
+
+{id:"bgp-af", n:"12", nav:"BGP · aplicação", title:"BGP · aplicação por address-family",
+ lead:"Cada peer recebe uma policy por direção, um <code>route-limit</code> e <code>advertise-community</code>. Nos trânsitos o limite é <code>alert-only</code>, para não derrubar a full table. Nos route servers é <code>idle-timeout</code>, que protege contra leak em massa. Ajuste os limites ao volume real da tabela.",
+ code:
+`bgp {{ASN_L}}
+ ipv4-family unicast
+  undo synchronization
+  network {{AGG4_NET}} {{AGG4_MASK}}
+# RTBH sob demanda:
+#  network {{BH4}} 255.255.255.255 route-policy RP-SET-BLACKHOLE
+#
+  peer {{TA_V4}} enable
+  peer {{TA_V4}} route-policy RP-TRANSITO-A-IN-V4 import
+  peer {{TA_V4}} route-policy RP-TRANSITO-A-OUT-V4 export
+  peer {{TA_V4}} route-limit 1300000 90 alert-only
+  peer {{TA_V4}} advertise-community
+#
+  peer {{TB_V4}} enable
+  peer {{TB_V4}} route-policy RP-TRANSITO-B-IN-V4 import
+  peer {{TB_V4}} route-policy RP-TRANSITO-B-OUT-V4 export
+  peer {{TB_V4}} route-limit 1300000 90 alert-only
+  peer {{TB_V4}} advertise-community
+#
+  peer IX-RS-V4 enable
+  peer IX-RS-V4 route-policy RP-IX-RS-IN-V4 import
+  peer IX-RS-V4 route-policy RP-IX-RS-OUT-V4 export
+  peer IX-RS-V4 route-limit 400000 90 idle-timeout 30
+  peer IX-RS-V4 advertise-community
+#
+ ipv6-family unicast
+  undo synchronization
+  network {{AGG6_NET}} {{AGG6_LEN}}
+#
+  peer {{TA_V6}} enable
+  peer {{TA_V6}} route-policy RP-TRANSITO-A-IN-V6 import
+  peer {{TA_V6}} route-policy RP-TRANSITO-A-OUT-V6 export
+  peer {{TA_V6}} route-limit 300000 90 alert-only
+  peer {{TA_V6}} advertise-community
+#
+  peer {{TB_V6}} enable
+  peer {{TB_V6}} route-policy RP-TRANSITO-B-IN-V6 import
+  peer {{TB_V6}} route-policy RP-TRANSITO-B-OUT-V6 export
+  peer {{TB_V6}} route-limit 300000 90 alert-only
+  peer {{TB_V6}} advertise-community
+#
+  peer IX-RS-V6 enable
+  peer IX-RS-V6 route-policy RP-IX-RS-IN-V6 import
+  peer IX-RS-V6 route-policy RP-IX-RS-OUT-V6 export
+  peer IX-RS-V6 route-limit 150000 90 idle-timeout 30
+  peer IX-RS-V6 advertise-community`},
+
+{id:"rpki", n:"13", nav:"RPKI (opcional)", title:"RPKI / ROV (opcional)",
+ lead:"Validação de origem (RFC 6811) via sessão RTR com um validador (Routinator, rpki-client, FORT). O bloco vem todo comentado: VALIDE a sintaxe na release e só ative o deny de <code>invalid</code> com o validador estável e monitorado.",
+ code:
+`# VALIDAR TODA A SINTAXE NA DOC OFICIAL
+# rpki
+#  session {{RPKI_IP}}
+#   tcp port 3323
+# bgp {{ASN_L}}
+#  ipv4-family unicast
+#   prefix origin-validation enable
+# route-policy RP-TRANSITO-A-IN-V4 deny node 35
+#  description DENY-RPKI-INVALID
+#  if-match rpki origin-as-validation invalid`}
+];
+
+var OPS = [
+{id:"aplicacao", n:"A", nav:"Aplicação", title:"Aplicação em produção",
+ lead:"Em janela, com backup feito e um peer por vez. As seções 01 a 10 só criam objetos e âncoras, então entram primeiro e sem impacto. A troca de policy de cada peer vem depois, com soft refresh.",
+ extra:'<div class="callout" role="note"><b>⚠️ DISRUPTIVO na troca de policy.</b><p>Uma whitelist errada zera o export e derruba o tráfego de entrada por aquele peer. Comece pelo peer de menor tráfego e confira no looking-glass do outro lado.</p></div>',
+ code:
+`# 0. Backup e baseline (copie o arquivo salvo para fora da caixa)
+save
+display bgp peer
+display bgp routing-table statistics
+display bgp routing-table peer {{TA_V4}} advertised-routes
+#
+# 1. Secoes 01 a 10: objetos e ancoras (sem impacto)
+system-view
+# (colar secoes 01 a 10)
+display configuration candidate changes
+commit
+#
+# 2. Por peer: trocar a policy e ativar com soft refresh
+bgp {{ASN_L}}
+ ipv4-family unicast
+  peer {{TA_V4}} route-policy RP-TRANSITO-A-IN-V4 import
+  peer {{TA_V4}} route-policy RP-TRANSITO-A-OUT-V4 export
+  peer {{TA_V4}} route-limit 1300000 90 alert-only
+commit
+return
+refresh bgp ipv4 {{TA_V4}} import
+refresh bgp ipv4 {{TA_V4}} export`},
+
+{id:"validacao", n:"B", nav:"Validação", title:"Validação pós-peer",
+ lead:"Rode depois de cada peer e compare com o baseline coletado antes da mudança.",
+ extra:'<ul class="criteria"><li>O advertised fica idêntico ao esperado: só os prefixos próprios, com as communities corretas.</li><li>A contagem de recebidos fica estável. Uma pequena queda é esperada, pelos bogons e ASNs filtrados.</li><li>Todas as rotas do peer carregam a tag de origem dele.</li><li>O looking-glass externo mostra o anúncio com AS-path e communities corretos.</li></ul>',
+ code:
+`display bgp peer {{TA_V4}} verbose
+display bfd session all
+display bgp routing-table statistics
+display bgp routing-table community {{ASN_L}}:1000
+display bgp routing-table peer {{TA_V4}} advertised-routes
+display bgp routing-table {{AGG4_NET}} {{AGG4_LEN}}
+display bgp ipv6 routing-table peer {{TA_V6}} advertised-routes`},
+
+{id:"rollback", n:"C", nav:"Rollback", title:"Rollback",
+ lead:"Volta ao commit anterior e reaplica as policies com soft refresh, sem derrubar a sessão.",
+ code:
+`display configuration commit list
+rollback configuration last 1
+refresh bgp ipv4 {{TA_V4}} import
+refresh bgp ipv4 {{TA_V4}} export`}
+];
+
+var CHECKLIST = [
+  {id:"c1", t:"Todos os parâmetros substituídos", d:"O contador da barra superior fica verde. Revise mesmo assim, linha a linha."},
+  {id:"c2", t:"apply comm-filter … delete com filtro advanced", d:"Confirme com ? que a release aceita filtro advanced no delete."},
+  {id:"c3", t:"goto next-node", d:"Confirme no lab que o node 60 é avaliado depois da limpeza do node 50."},
+  {id:"c4", t:"Large community, se o ASN for de 4 bytes", d:"ip large-community-filter e apply large-community disponíveis na release."},
+  {id:"c5", t:"BFD, GTSM, timers e password combinados com cada upstream", d:"Parâmetros divergentes derrubam a sessão."},
+  {id:"c6", t:"ROA cobre tudo o que é anunciado", d:"maxLength compatível com os more-specifics de TE; senão eles ficam RPKI-invalid."},
+  {id:"c7", t:"IRR e as-set atualizados", d:"Os route servers do IX filtram por eles."},
+  {id:"c8", t:"Backup salvo fora da caixa e baseline coletado", d:"advertised-routes e statistics de cada peer antes da mudança."}
+];
+
+/* ===================== highlight VRP ===================== */
+var HEAD = new Set(["ip","ipv6","route-policy","bgp","peer","group","if-match","apply","description","goto","network","undo","bfd","rpki","session","tcp","prefix","ipv4-family","ipv6-family","router-id","graceful-restart","display","refresh","rollback","save","commit","system-view","return"]);
+var OPT = new Set(["ip-prefix","ipv6-prefix","as-path-filter","community-filter","basic","advanced","index","less-equal","greater-equal","node","additive","none","no-export","enable","as-number","route-limit","alert-only","idle-timeout","import","export","external","timer","keepalive","hold","min-tx-interval","min-rx-interval","detect-multiplier","valid-ttl-hops","route-static","NULL0","local-preference","community","comm-filter","delete","next-node","address","prefix-list","unicast","synchronization","check-first-as","origin-validation","origin-as-validation","invalid","port","routing-table","verbose","statistics","advertised-routes","received-routes","configuration","candidate","changes","list","last","all","password","cipher"]);
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+var SENT = /\u0001([A-Z0-9_]+)\u0002/;
+var SPLIT = /(\u0001[A-Z0-9_]+\u0002)/;
+function toSentinel(code){ return code.replace(/\{\{([A-Z0-9_]+)\}\}/g, function(m,k){ return "\u0001"+k+"\u0002"; }); }
+function chip(k){ return '<span class="ph" data-k="'+k+'" title="'+esc(labelOf(k))+'"></span>'; }
+
+function classify(word, isFirst, state){
+  if (state.str) return "c-str";
+  if (isFirst && HEAD.has(word)) return "c-kw";
+  if (word === "permit") return "c-permit";
+  if (word === "deny") return "c-deny";
+  if (OPT.has(word) || HEAD.has(word)) return "c-opt";
+  if (/^(PL|ASP|CF|RP)-[A-Za-z0-9-]+$/.test(word) || /^IX-RS-V[46]$/.test(word)) return "c-name";
+  if (/[\^$_|\[(*]/.test(word)) return "c-rx";
+  if (/^[0-9A-Fa-f.:\/]*\d[0-9A-Fa-f.:\/]*$/.test(word)) return "c-num";
+  return "";
+}
+function renderLine(line){
+  var isCmt = /^\s*#/.test(line);
+  var parts = line.split(SPLIT);
+  var html = "", state = {first:true, str:false};
+  parts.forEach(function(part){
+    if (!part) return;
+    var m = SENT.exec(part);
+    if (m && m[0] === part){ html += chip(m[1]); state.first = false; return; }
+    if (isCmt){ html += esc(part); return; }
+    part.split(/(\s+)/).forEach(function(tok){
+      if (!tok) return;
+      if (/^\s+$/.test(tok)){ html += tok; return; }
+      var cls = classify(tok, state.first, state);
+      if (state.first && tok === "description") { state.first = false; html += '<span class="c-kw">'+esc(tok)+'</span>'; state.str = true; return; }
+      state.first = false;
+      html += cls ? '<span class="'+cls+'">'+esc(tok)+'</span>' : esc(tok);
+    });
+  });
+  return '<span class="l'+(isCmt?' cmt cmt-line':'')+'">'+(html||" ")+'</span>';
+}
+function renderCode(code){ return toSentinel(code).split("\n").map(renderLine).join(""); }
+
+/* ===================== montagem ===================== */
+var content = document.getElementById("content");
+var nav = document.getElementById("nav");
+
+function codeBlock(sec){
+  return '<div class="codewrap"><div class="codebar"><span class="lang"><b>Huawei VRP8</b> · <span data-lines="'+sec.id+'"></span></span><span class="sp"></span>' +
+    '<button class="btn small" type="button" data-copy="'+sec.id+'">Copiar</button></div>' +
+    '<div class="scroll"><pre class="code" id="code-'+sec.id+'" aria-label="Configuração: '+esc(sec.title)+'">'+renderCode(sec.code)+'</pre></div></div>';
+}
+function sectionHTML(sec){
+  return '<section class="sec" id="'+sec.id+'"'+(sec.code?' data-code="1"':'')+'>' +
+    '<div class="sechead"><span class="n">'+sec.n+'</span><h2>'+sec.title+'</h2></div>' +
+    (sec.lead ? '<p class="lead">'+sec.lead+'</p>' : '') +
+    (sec.extra || '') + (sec.code ? codeBlock(sec) : '') + '</section>';
+}
+
+var overview =
+ '<section class="sec" id="visao"><div class="sechead"><span class="n">00</span><h2>Visão geral</h2></div>' +
+ '<p class="lead">Dois trânsitos com o mesmo local-preference, deixando o AS-path decidir entre eles, e os route servers do IX acima dos dois. O que sai é só o agregado próprio, filtrado por três camadas: prefixo exato, AS-path <code>^$</code> e tag de origem.</p>' +
+ '<div class="tablewrap"><table><thead><tr><th>Peer</th><th>AS</th><th>LP import</th><th>Tag de origem</th><th>Export</th><th>route-limit v4 / v6</th></tr></thead><tbody>' +
+ '<tr><td>Trânsito A</td><td class="mono">'+chip("TA_ASN")+'</td><td class="mono">200</td><td class="mono">'+chip("ASN_L")+':1000</td><td>Agregado + RTBH /32</td><td class="mono">1300000 / 300000 · alert-only</td></tr>' +
+ '<tr><td>Trânsito B</td><td class="mono">'+chip("TB_ASN")+'</td><td class="mono">200</td><td class="mono">'+chip("ASN_L")+':1001</td><td>Agregado + community de TE</td><td class="mono">1300000 / 300000 · alert-only</td></tr>' +
+ '<tr><td>IX route servers ×2</td><td class="mono">'+chip("IX_ASN")+'</td><td class="mono">300</td><td class="mono">'+chip("ASN_L")+':2000</td><td>Agregado, sem communities</td><td class="mono">400000 / 150000 · idle-timeout 30</td></tr>' +
+ '</tbody></table></div>' +
+ '<div class="legend"><span><span class="ph">64496</span> valor de documentação, substituir</span><span><span class="ph set">65010</span> valor preenchido por você</span></div></section>';
+
+var paramsHTML = '<section class="sec" id="parametros"><div class="sechead"><span class="n">00</span><h2>Parâmetros</h2></div>' +
+ '<div class="paramsbar"><p>Cada valor válido reescreve todas as seções. Campo vazio mantém o placeholder. Nada é salvo: ao fechar a aba, os valores somem.</p><button class="btn small" type="button" id="clearParams">Limpar valores</button></div>' +
+ '<div class="params">' + GROUPS.map(function(g){
+   return '<div class="pgroup"><h3>'+g.title+'</h3>' + FIELDS.filter(function(f){ return f.g === g.id; }).map(function(f){
+     return '<div class="field"><label for="f-'+f.k+'">'+f.label+'</label>' +
+       '<input id="f-'+f.k+'" data-k="'+f.k+'" type="text" inputmode="'+(f.t==="asn"?"numeric":"text")+'" spellcheck="false" autocomplete="off" placeholder="'+esc(f.def)+'" aria-describedby="e-'+f.k+' h-'+f.k+'">' +
+       '<p class="err" id="e-'+f.k+'" hidden></p><p class="hint" id="h-'+f.k+'" hidden></p></div>';
+   }).join("") + '</div>';
+ }).join("") + '</div></section>';
+
+var checkHTML = '<section class="sec" id="checklist"><div class="sechead"><span class="n">D</span><h2>Checklist pré-janela</h2></div>' +
+ '<p class="lead">Itens marcados VALIDAR ao longo do modelo, mais os pré-requisitos externos. As marcações ficam salvas só neste navegador.</p>' +
+ '<ul class="check">' + CHECKLIST.map(function(c){
+   return '<li><label><input type="checkbox" id="'+c.id+'"><span class="t"><b>'+esc(c.t)+'</b><span>'+esc(c.d)+'</span></span></label></li>';
+ }).join("") + '</ul></section>';
+
+content.innerHTML = overview + paramsHTML +
+  '<div class="groupmark">Configuração · ordem de build</div>' + CONFIG.map(sectionHTML).join("") +
+  '<div class="groupmark">Operação</div>' + OPS.map(sectionHTML).join("") + checkHTML;
+
+function navList(items){ return '<ul>' + items.map(function(s){ return '<li><a href="#'+s.id+'" data-nav="'+s.id+'"><span class="n">'+s.n+'</span>'+s.nav+'</a></li>'; }).join("") + '</ul>'; }
+nav.innerHTML =
+  '<h4>Início</h4>' + navList([{id:"visao",n:"·",nav:"Visão geral"},{id:"parametros",n:"·",nav:"Parâmetros"}]) +
+  '<h4>Configuração</h4>' + navList(CONFIG) +
+  '<h4>Operação</h4>' + navList(OPS.concat([{id:"checklist",n:"D",nav:"Checklist"}]));
+
+/* ===================== estado / atualizacao ===================== */
+var showCmt = true;
+try { var sc = localStorage.getItem("bgpvrp8-cmt"); if (sc === "0") showCmt = false; } catch(e){}
+document.getElementById("showCmt").checked = showCmt;
+
+function refreshChips(){
+  document.querySelectorAll(".ph[data-k]").forEach(function(el){
+    var k = el.dataset.k;
+    el.textContent = val(k);
+    el.classList.toggle("set", isSet(k));
+  });
+  var n = Object.keys(values).length, total = FIELDS.length;
+  var st = document.getElementById("status");
+  st.textContent = n + "/" + total + " parâmetros";
+  st.classList.toggle("done", n === total);
+  st.title = n === total ? "Todos os parâmetros preenchidos. Revise antes de aplicar." : "Parâmetros ainda com valor de documentação";
+  var asn = +val("ASN_L");
+  var w = document.getElementById("warn4b");
+  if (w){ w.hidden = !(asn > 65535); w.querySelector("code").textContent = asn + ":1000"; }
+}
+function refreshComments(){
+  document.querySelectorAll(".cmt-line").forEach(function(el){ el.hidden = !showCmt; });
+  CONFIG.concat(OPS).forEach(function(s){
+    var lines = textFor(s).split("\n").length;
+    var el = document.querySelector('[data-lines="'+s.id+'"]');
+    if (el) el.textContent = lines + (lines === 1 ? " linha" : " linhas");
+  });
+}
+function textFor(sec){
+  var lines = sec.code.split("\n");
+  if (!showCmt) lines = lines.filter(function(l){ return !/^\s*#/.test(l); });
+  return lines.join("\n").replace(/\{\{([A-Z0-9_]+)\}\}/g, function(m,k){ return val(k); });
+}
+
+/* ---------- inputs ---------- */
+document.querySelectorAll(".field input").forEach(function(inp){
+  inp.addEventListener("input", function(){
+    var f = FIELD[inp.dataset.k], raw = inp.value.trim();
+    var err = document.getElementById("e-"+f.k), hint = document.getElementById("h-"+f.k);
+    err.hidden = true; hint.hidden = true; inp.removeAttribute("aria-invalid"); inp.classList.remove("ok");
+    if (!raw){ delete values[f.k]; }
+    else {
+      var r = validate(f, raw);
+      if (r.err){ delete values[f.k]; err.textContent = r.err; err.hidden = false; inp.setAttribute("aria-invalid","true"); }
+      else {
+        values[f.k] = r.v; inp.classList.add("ok");
+        if (r.hint){ hint.textContent = r.hint; hint.hidden = false; }
+      }
+    }
+    refreshChips(); applySearch();
+  });
+});
+document.getElementById("clearParams").addEventListener("click", function(){
+  values = {};
+  document.querySelectorAll(".field input").forEach(function(inp){
+    inp.value = ""; inp.removeAttribute("aria-invalid"); inp.classList.remove("ok");
+    document.getElementById("e-"+inp.dataset.k).hidden = true;
+    document.getElementById("h-"+inp.dataset.k).hidden = true;
+  });
+  refreshChips(); applySearch();
+});
+
+document.getElementById("showCmt").addEventListener("change", function(e){
+  showCmt = e.target.checked;
+  try { localStorage.setItem("bgpvrp8-cmt", showCmt ? "1" : "0"); } catch(err){}
+  refreshComments(); applySearch();
+});
+
+/* ---------- copiar ---------- */
+function flash(btn, msg){
+  var old = btn.dataset.label || btn.textContent;
+  btn.dataset.label = old; btn.textContent = msg;
+  clearTimeout(btn._t); btn._t = setTimeout(function(){ btn.textContent = old; }, 1800);
+}
+function selectEl(el){
+  try { var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch(e){}
+}
+function copyText(text, btn, fallbackEl){
+  var done = function(){ flash(btn, "Copiado"); };
+  var fail = function(){ if (fallbackEl) selectEl(fallbackEl); flash(btn, "Selecionado · Ctrl+C"); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, fail); }
+    else fail();
+  } catch(e){ fail(); }
+}
+var ALL = {}; CONFIG.concat(OPS).forEach(function(s){ ALL[s.id] = s; });
+document.addEventListener("click", function(e){
+  var b = e.target.closest("[data-copy]");
+  if (!b) return;
+  var s = ALL[b.dataset.copy];
+  copyText(textFor(s), b, document.getElementById("code-"+s.id));
+});
+document.getElementById("copyAll").addEventListener("click", function(e){
+  var text = CONFIG.map(textFor).join("\n#\n");
+  copyText(text, e.currentTarget, document.getElementById("code-global"));
+});
+
+/* ---------- busca ---------- */
+var q = document.getElementById("q"), info = document.getElementById("searchinfo");
+function applySearch(){
+  var term = q.value.trim().toLowerCase();
+  var secs = document.querySelectorAll('.sec[data-code]');
+  if (!term){
+    secs.forEach(function(s){ s.hidden = false; });
+    document.querySelectorAll(".l.hit").forEach(function(l){ l.classList.remove("hit"); });
+    info.hidden = true; return;
+  }
+  var nl = 0, ns = 0;
+  secs.forEach(function(s){
+    var hits = 0;
+    s.querySelectorAll(".code .l").forEach(function(l){
+      var h = !l.hidden && l.textContent.toLowerCase().indexOf(term) >= 0;
+      l.classList.toggle("hit", h); if (h) hits++;
+    });
+    s.hidden = hits === 0; if (hits){ nl += hits; ns++; }
+  });
+  info.hidden = false;
+  info.textContent = nl ? (nl + (nl===1?" linha":" linhas") + " em " + ns + (ns===1?" seção":" seções") + " para “" + q.value.trim() + "”") : ("Nada encontrado para “" + q.value.trim() + "”. Tente o nome de uma lista, policy ou comando.");
+}
+q.addEventListener("input", applySearch);
+
+/* ---------- checklist ---------- */
+var checks = {};
+try { checks = JSON.parse(localStorage.getItem("bgpvrp8-check") || "{}") || {}; } catch(e){ checks = {}; }
+CHECKLIST.forEach(function(c){
+  var el = document.getElementById(c.id);
+  el.checked = !!checks[c.id];
+  el.addEventListener("change", function(){
+    checks[c.id] = el.checked;
+    try { localStorage.setItem("bgpvrp8-check", JSON.stringify(checks)); } catch(e){}
+  });
+});
+
+/* ---------- nav ativo ---------- */
+var links = {};
+document.querySelectorAll("[data-nav]").forEach(function(a){ links[a.dataset.nav] = a; });
+if ("IntersectionObserver" in window){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting){
+        Object.keys(links).forEach(function(k){ links[k].classList.toggle("active", k === en.target.id); });
+      }
+    });
+  }, {rootMargin:"-25% 0px -65% 0px"});
+  document.querySelectorAll(".sec").forEach(function(s){ io.observe(s); });
+}
+
+refreshChips();
+refreshComments();
+})();
+</script>
+
+</body>
+</html>
