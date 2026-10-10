@@ -3,7 +3,7 @@
 Modelo de referência de configuração BGP de borda para **Huawei VRP8 (V800R021C10)**:
 2 trânsitos + route servers de IX, dual-stack, filtros no modelo tradicional (`route-policy`).
 
-Site: `https://<seu-usuario>.github.io/bgp-borda-vrp8/`
+Site: `(https://dnz7-net.github.io/bgp/)`
 
 ## Conteúdo
 
